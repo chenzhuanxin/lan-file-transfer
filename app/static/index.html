@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>局域网文件传输</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- 房间码登录层：未认证时挡住整个界面 -->
+<div id="gate" class="gate hidden">
+  <div class="gate-box">
+    <div class="gate-logo"></div>
+    <h2>输入房间码</h2>
+    <p class="gate-sub">请向发起传输的人索取 6 位房间码</p>
+    <input id="gateCode" class="gate-input" type="text" maxlength="8"
+           placeholder="例如 A3F9K2" autocomplete="off" spellcheck="false">
+    <input id="gateName" class="gate-input gate-name" type="text" maxlength="24"
+           placeholder="你的称呼（可选，方便对方识别）" autocomplete="off">
+    <button id="gateBtn" class="btn gate-btn" type="button">连接</button>
+    <p id="gateErr" class="gate-err hidden"></p>
+    <p class="gate-tip">房间码错误将无法查看或传输任何文件</p>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"></span>
+    <div>
+      <h1>局域网文件传输</h1>
+      <p id="connInfo" class="sub">正在检测网络…</p>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-label">上传速度</span>
+      <span id="upSpeed" class="stat-value up">0 B/s</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">下载速度</span>
+      <span id="downSpeed" class="stat-value down">0 B/s</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">进行中</span>
+      <span id="activeCount" class="stat-value">0</span>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button id="btnQr" class="btn ghost" type="button">连接二维码</button>
+    <button id="btnRoom" class="btn ghost" type="button">房间成员</button>
+    <button id="btnSettings" class="btn ghost" type="button">设置</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="panel">
+    <h2>发送文件</h2>
+    <p class="hint">把文件或文件夹拖到这里，或点下面的按钮选择</p>
+
+    <div id="dropZone" class="dropzone">
+      <div class="dz-icon"></div>
+      <p class="dz-title">拖拽文件到此处</p>
+      <p class="dz-sub">支持多文件、整个文件夹，自动保留目录结构</p>
+      <div class="dz-buttons">
+        <button id="btnPickFiles" class="btn" type="button">选择文件</button>
+        <button id="btnPickFolder" class="btn" type="button">选择文件夹</button>
+        <button id="btnBrowse" class="btn ghost" type="button">浏览本机目录</button>
+      </div>
+      <input id="fileInput" type="file" multiple hidden>
+      <input id="folderInput" type="file" webkitdirectory directory multiple hidden>
+    </div>
+
+    <div id="sendQueue" class="queue hidden">
+      <div class="queue-head">
+        <span id="queueInfo" class="queue-info"></span>
+        <div>
+          <button id="btnSendAll" class="btn small" type="button">开始发送</button>
+          <button id="btnClearQueue" class="btn small ghost" type="button">清空</button>
+        </div>
+      </div>
+      <ul id="queueList" class="file-list"></ul>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>接收区</h2>
+    <p class="hint">对方发来的文件会存到下面这个目录</p>
+
+    <div class="recv-row">
+      <div class="recv-path">
+        <span class="path-label">保存到</span>
+        <code id="recvDir" class="path-value">—</code>
+      </div>
+      <button id="btnChangeDir" class="btn small" type="button">更改</button>
+      <button id="btnOpenDir" class="btn small ghost" type="button">打开</button>
+    </div>
+
+    <div class="capacity">
+      <div class="cap-head">
+        <span>磁盘剩余空间</span>
+        <span id="capText" class="cap-text">—</span>
+      </div>
+      <div class="cap-bar"><div id="capBar" class="cap-fill"></div></div>
+      <div id="capWarn" class="cap-warn hidden"></div>
+    </div>
+
+    <h3 class="sub-head">局域网设备</h3>
+    <div class="scan-row">
+      <button id="btnScan" class="btn small ghost" type="button">扫描设备</button>
+      <span id="scanInfo" class="scan-info"></span>
+    </div>
+    <ul id="deviceList" class="device-list"></ul>
+  </section>
+
+  <section class="panel wide">
+    <div class="tasks-head">
+      <h2>传输任务</h2>
+      <button id="btnClearTasks" class="btn small ghost" type="button">清理已结束</button>
+    </div>
+    <div id="emptyTasks" class="empty">
+      <p>暂无传输任务</p>
+      <p class="empty-sub">发送或接收文件后，进度会实时显示在这里</p>
+    </div>
+    <ul id="taskList" class="task-list"></ul>
+  </section>
+
+</main>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalTitle">标题</h3>
+      <button id="modalClose" class="modal-x" type="button">×</button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+    <div id="modalFoot" class="modal-foot"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
