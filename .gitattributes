@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────
+#  行尾与二进制文件策略（跨平台协作必备）
+# ─────────────────────────────────────────────────────────────
+#
+#  text=auto：git 自动识别文本文件，**仓库内一律存 LF**；
+#             Windows 检出时按 core.autocrlf 自动转成 CRLF。
+#             这样 Linux/macOS 用户 clone 下来不会踩 CRLF 的坑。
+* text=auto
+
+# Shell 脚本**必须**保持 LF —— 否则 Linux / macOS 执行时报
+#   /bin/bash^M: bad interpreter: No such file or directory
+*.sh       text eol=lf
+
+# 本文件自身也保持 LF
+.gitattributes text eol=lf
+
+# 下面这些即使在被判定为文本的情况下也强制 LF
+*.py       text eol=lf
+*.js       text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+*.md       text eol=lf
+*.json     text eol=lf
+*.spec     text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.toml     text eol=lf
+
+# 二进制文件禁止任何行尾转换，否则会损坏
+*.exe      binary
+*.dll      binary
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.zip      binary
+*.7z       binary
