@@ -43,7 +43,8 @@ urllib.request.install_opener(
     urllib.request.build_opener(urllib.request.ProxyHandler({})))
 
 API = f"https://api.github.com/repos/{OWNER}/{REPO}/contents"
-lock = threading.Lock()
+lock = threading.Lock()          # 保护计数器与打印
+commit_lock = threading.Lock()   # 串行化「查 sha -> 写」，避免 409 撞车
 done = 0
 failures: list[str] = []
 
@@ -65,6 +66,10 @@ def api(method: str, url: str, payload=None, retries: int = 3):
             raw = e.read().decode("utf-8", errors="ignore")
             if e.code == 404:
                 return 404, {}
+            # 409 = 并发写同一分支撞车；429/5xx = 限流或服务端抖动。都值得重试
+            if e.code in (409, 429, 500, 502, 503, 504) and attempt < retries - 1:
+                time.sleep(1.5 * (attempt + 1))
+                continue
             if attempt == retries - 1:
                 try:
                     return e.code, json.loads(raw)
@@ -76,6 +81,12 @@ def api(method: str, url: str, payload=None, retries: int = 3):
                 return 0, {"_err": str(exc)}
             time.sleep(1.5 * (attempt + 1))
     return 0, {}
+
+
+def urlify(rel: str) -> str:
+    """把相对路径编码进 URL —— 中文文件名必须转义，否则 urllib 抛 ASCII 编码错。"""
+    from urllib.parse import quote
+    return quote(rel, safe="/")
 
 
 def collect(root: str) -> list[str]:
@@ -94,25 +105,28 @@ def collect(root: str) -> list[str]:
 
 
 def upload(rel: str) -> None:
-    global done
+    global done, last_commit
     full = os.path.join(ROOT, rel.replace("/", os.sep))
-    url = f"{API}/{rel}"
 
-    # 查是否已存在，拿 sha（存在则 update）
-    st, info = api("GET", f"{url}?ref={BRANCH}")
-    sha = info.get("sha") if st == 200 else None
-
+    # 关键：串行化「查 sha -> 写」这段，否则并发写同一分支会 409 撞车。
+    # 加锁只覆盖 API 交互，文件读取放在锁外。
     with open(full, "rb") as f:
         content = f.read()
+
     payload = {
         "message": f"upload: {rel}",
         "content": base64.b64encode(content).decode(),
         "branch": BRANCH,
     }
-    if sha:
-        payload["sha"] = sha
 
-    st, res = api("PUT", url, payload)
+    with commit_lock:
+        url = f"{API}/{urlify(rel)}"
+        st, info = api("GET", f"{url}?ref={BRANCH}")
+        sha = info.get("sha") if st == 200 else None
+        if sha:
+            payload["sha"] = sha
+        st, res = api("PUT", url, payload)
+
     with lock:
         done += 1
         if st in (200, 201):
@@ -120,7 +134,7 @@ def upload(rel: str) -> None:
             print(f"  [{done:3}/{total}] ✓ {action:6} {rel}  ({len(content)} B)")
         else:
             failures.append(rel)
-            print(f"  [{done:3}/{total}] ✗ {rel}  HTTP {st} {str(res)[:120]}")
+            print(f"  [{done:3}/{total}] ✗ {rel}  HTTP {st} {str(res)[:110]}")
 
 
 if not TOKEN:
