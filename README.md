@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.png" width="120" alt="lan-file-transfer"></p>
+
 # 局域网文件传输
 
 > 免安装、免注册、免登录的局域网文件互传工具。**双击运行，浏览器打开就是完整界面，手机扫码直接传。**
